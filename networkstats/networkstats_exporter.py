@@ -34,7 +34,7 @@ class GolemOnlineCollector(object):
         price_per_second = GolemGauge("price_per_second", unit="GLM")
         price_per_cpu_second = GolemGauge("price_per_cpu_second", unit="GLM")
 
-        for provider in providers[:10]:
+        for provider in providers:
             provider.update(provider["data"])
 
             online.add_metric(labelgetter(provider), provider["online"])
