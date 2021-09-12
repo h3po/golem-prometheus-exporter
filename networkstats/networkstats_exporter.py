@@ -20,6 +20,14 @@ class GolemCounter(CounterMetricFamily):
     def __init__(self, name, unit=""):
         super().__init__(f"golem_provider_{name}", name, labels=labels.keys(), unit=unit)
 
+def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
+    if key in provider:
+        value = provider[key]
+        if subkey is not None: value = value[subkey]
+        if value is None: value = 0
+        if multiplier: value *= multiplier
+        metric.add_metric(labelgetter(provider), value)
+
 class GolemOnlineCollector(object):
  
     def collect(self):
@@ -37,14 +45,14 @@ class GolemOnlineCollector(object):
         for provider in providers:
             provider.update(provider["data"])
 
-            online.add_metric(labelgetter(provider), provider["online"])
-            earnings_total.add_metric(labelgetter(provider), provider["earnings_total"])
-            mem_bytes.add_metric(labelgetter(provider), provider["golem.inf.mem.gib"] * 1024 * 1024 * 1024)
-            cpu_threads.add_metric(labelgetter(provider), provider["golem.inf.cpu.threads"])
-            storage_bytes.add_metric(labelgetter(provider), provider["golem.inf.storage.gib"] * 1024 * 1024 * 1024)
-            price_start.add_metric(labelgetter(provider), provider["golem.com.pricing.model.linear.coeffs"][0])
-            price_per_second.add_metric(labelgetter(provider), provider["golem.com.pricing.model.linear.coeffs"][1])
-            price_per_cpu_second.add_metric(labelgetter(provider), provider["golem.com.pricing.model.linear.coeffs"][2])
+            try_add_metric(online, provider, "online")
+            try_add_metric(earnings_total, provider, "earnings_total")
+            try_add_metric(mem_bytes, provider, "golem.inf.mem.gib", multiplier=1024*1024*1024)
+            try_add_metric(cpu_threads, provider, "golem.inf.cpu.threads")
+            try_add_metric(storage_bytes, provider, "golem.inf.storage.gib", multiplier=1024*1024*1024)
+            try_add_metric(price_start, provider, "golem.com.pricing.model.linear.coeffs", subkey=0)
+            try_add_metric(price_per_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=1)
+            try_add_metric(price_per_cpu_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=2)
 
         yield online
         yield earnings_total
