@@ -29,7 +29,7 @@ class CoinmarketcapCollector(object):
         coinmarketcap_price = GaugeMetricFamily("coinmarketcap_price", "", labels=("symbol", "currency"))
         coinmarketcap_volume_24h = GaugeMetricFamily("coinmarketcap_volume_24h", "", labels=("symbol", "currency"))
         coinmarketcap_marketcap = GaugeMetricFamily("coinmarketcap_marketcap", "", labels=("symbol", "currency"))
-        coinmarketcap_dominance = GaugeMetricFamily("coinmarketcap_marketcap", "", labels=("symbol", "currency"))
+        coinmarketcap_dominance = GaugeMetricFamily("coinmarketcap_dominance", "", labels=("symbol", "currency"))
 
         req, timestamp = self.__request()
 

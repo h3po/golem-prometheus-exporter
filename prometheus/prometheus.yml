@@ -16,3 +16,7 @@ scrape_configs:
   - job_name: 'golem-networkstats'
     static_configs:
       - targets: ['golem-networkstats-exporter:1234']
+
+  - job_name: "coinmarketcap"
+    static_configs:
+      - targets: ["golem-coinmarketcap-exporter:9101"]
