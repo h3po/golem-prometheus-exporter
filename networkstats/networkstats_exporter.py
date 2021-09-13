@@ -2,24 +2,30 @@ from typing import Counter
 import prometheus_client
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 import requests
+from itertools import chain
 
-labels = {
+common_labelmap = {
     "node_id": lambda p: p["node_id"],
     "subnet": lambda p: p["golem.node.debug.subnet"],
+    "runtime": lambda p: p["golem.runtime.name"]
     #"info_url": lambda p: f"https://stats.golem.network/node/{p['node_id']}"
 }
-def labelgetter(provider):
-    return (f(provider) for f in labels.values())
+def labelgetter(provider, labelmap=common_labelmap):
+    return (f(provider) for f in labelmap.values())
 
 class GolemGauge(GaugeMetricFamily):
 
-    def __init__(self, name, unit=""):
-        super().__init__(f"golem_provider_{name}", name, labels=labels.keys(), unit=unit)
+    def __init__(self, name, unit="", extra_labels=None):
+        self.labelmap = common_labelmap.copy()
+        if extra_labels: self.labelmap.update(extra_labels)
+        super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
 
 class GolemCounter(CounterMetricFamily):
 
-    def __init__(self, name, unit=""):
-        super().__init__(f"golem_provider_{name}", name, labels=labels.keys(), unit=unit)
+    def __init__(self, name, unit="", extra_labels=None):
+        self.labelmap = common_labelmap.copy()
+        if extra_labels: self.labelmap.update(extra_labels)
+        super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
 
 def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
     if key in provider:
@@ -27,7 +33,7 @@ def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
         if subkey is not None: value = value[subkey]
         if value is None: value = 0
         if multiplier: value *= multiplier
-        metric.add_metric(labelgetter(provider), value)
+        metric.add_metric(labelgetter(provider, metric.labelmap), value)
 
 class GolemOnlineCollector(object):
  
@@ -37,7 +43,9 @@ class GolemOnlineCollector(object):
         online = GolemGauge("online", unit="bool")
         earnings_total = GolemCounter("earnings_total", unit="GLM")
         mem_bytes = GolemGauge("mem", unit="bytes")
-        cpu_threads = GolemGauge("cpu_threads")
+        cpu_threads = GolemGauge("cpu_threads", extra_labels={
+            "cpu_vendor": lambda p: p["golem.inf.cpu.vendor"],
+            "cpu_vendor": lambda p: p["golem.inf.cpu.architecture"]})
         storage_bytes = GolemGauge("storage", unit="bytes")
         price_start = GolemGauge("price_start", unit="GLM")
         price_per_second = GolemGauge("price_per_second", unit="GLM")
