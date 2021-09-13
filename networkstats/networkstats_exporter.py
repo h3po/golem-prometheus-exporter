@@ -8,7 +8,6 @@ common_labelmap = {
     "node_id": lambda p: p["node_id"],
     "subnet": lambda p: p["golem.node.debug.subnet"],
     "runtime": lambda p: p["golem.runtime.name"]
-    #"info_url": lambda p: f"https://stats.golem.network/node/{p['node_id']}"
 }
 def labelgetter(provider, labelmap=common_labelmap):
     return (f(provider) for f in labelmap.values())
@@ -44,8 +43,8 @@ class GolemOnlineCollector(object):
         earnings_total = GolemCounter("earnings_total", unit="GLM")
         mem_bytes = GolemGauge("mem", unit="bytes")
         cpu_threads = GolemGauge("cpu_threads", extra_labels={
-            "cpu_vendor": lambda p: p["golem.inf.cpu.vendor"],
-            "cpu_vendor": lambda p: p["golem.inf.cpu.architecture"]})
+            "cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
+            "cpu_architecture": lambda p: p["golem.inf.cpu.architecture"]})
         storage_bytes = GolemGauge("storage", unit="bytes")
         price_start = GolemGauge("price_start", unit="GLM")
         price_per_second = GolemGauge("price_per_second", unit="GLM")
