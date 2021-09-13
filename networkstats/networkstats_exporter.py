@@ -5,6 +5,7 @@ import requests
 
 labels = {
     "node_id": lambda p: p["node_id"],
+    "subnet": lambda p: p["golem.node.debug.subnet"],
     #"info_url": lambda p: f"https://stats.golem.network/node/{p['node_id']}"
 }
 def labelgetter(provider):
@@ -50,9 +51,13 @@ class GolemOnlineCollector(object):
             try_add_metric(mem_bytes, provider, "golem.inf.mem.gib", multiplier=1024*1024*1024)
             try_add_metric(cpu_threads, provider, "golem.inf.cpu.threads")
             try_add_metric(storage_bytes, provider, "golem.inf.storage.gib", multiplier=1024*1024*1024)
-            try_add_metric(price_start, provider, "golem.com.pricing.model.linear.coeffs", subkey=0)
-            try_add_metric(price_per_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=1)
-            try_add_metric(price_per_cpu_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=2)
+
+            #so far all providers are "linear":
+            #wget https://api.stats.golem.network/v1/network/online -qO- | jq '.[].data."golem.com.pricing.model"' | sort | uniq
+            if provider["golem.com.pricing.model"] == "linear":
+                try_add_metric(price_start, provider, "golem.com.pricing.model.linear.coeffs", subkey=0)
+                try_add_metric(price_per_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=1)
+                try_add_metric(price_per_cpu_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=2)
 
         yield online
         yield earnings_total
