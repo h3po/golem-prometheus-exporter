@@ -2,37 +2,52 @@ groups:
   - name: counts
     rules:
       - record: golem_count_provider_online_bool
-        expr: count(golem_provider_online_bool == 1) by (subnet)
+        expr: count(golem_provider_online_bool == 1) by (subnet, runtime)
   - name: averages
     rules:
       - record: golem_avg_provider_earnings_GLM_total
-        expr: avg(golem_provider_earnings_GLM_total) by (subnet)
+        expr: avg(golem_provider_earnings_GLM_total) by (subnet, runtime)
       - record: golem_avg_provider_mem_bytes
-        expr: avg(golem_provider_mem_bytes) by (subnet)
+        expr: avg(golem_provider_mem_bytes) by (subnet, runtime)
       - record: golem_avg_provider_cpu_threads
-        expr: avg(golem_provider_cpu_threads) by (subnet)
+        expr: avg(golem_provider_cpu_threads) by (subnet, runtime)
       - record: golem_avg_provider_storage_bytes
-        expr: avg(golem_provider_storage_bytes) by (subnet)
+        expr: avg(golem_provider_storage_bytes) by (subnet, runtime)
       - record: golem_avg_provider_price_start_GLM
-        expr: avg(golem_provider_price_start_GLM) by (subnet)
+        expr: avg(golem_provider_price_start_GLM) by (subnet, runtime)
       - record: golem_avg_provider_price_per_second_GLM
-        expr: avg(golem_provider_price_per_second_GLM) by (subnet)
+        expr: avg(golem_provider_price_per_second_GLM) by (subnet, runtime)
       - record: golem_avg_provider_price_per_cpu_second_GLM
-        expr: avg(golem_provider_price_per_cpu_second_GLM) by (subnet)
+        expr: avg(golem_provider_price_per_cpu_second_GLM) by (subnet, runtime)
   - name: means
     rules:
       - record: golem_mean_provider_earnings_GLM_total
-        expr: quantile(0.5, golem_provider_earnings_GLM_total) by (subnet)
+        expr: quantile(0.5, golem_provider_earnings_GLM_total) by (subnet, runtime)
       - record: golem_mean_provider_mem_bytes
-        expr: quantile(0.5, golem_provider_mem_bytes) by (subnet)
+        expr: quantile(0.5, golem_provider_mem_bytes) by (subnet, runtime)
       - record: golem_mean_provider_cpu_threads
-        expr: quantile(0.5, golem_provider_cpu_threads) by (subnet)
+        expr: quantile(0.5, golem_provider_cpu_threads) by (subnet, runtime)
       - record: golem_mean_provider_storage_bytes
-        expr: quantile(0.5, golem_provider_storage_bytes) by (subnet)
+        expr: quantile(0.5, golem_provider_storage_bytes) by (subnet, runtime)
       - record: golem_mean_provider_price_start_GLM
-        expr: quantile(0.5, golem_provider_price_start_GLM) by (subnet)
+        expr: quantile(0.5, golem_provider_price_start_GLM) by (subnet, runtime)
       - record: golem_mean_provider_price_per_second_GLM
-        expr: quantile(0.5, golem_provider_price_per_second_GLM) by (subnet)
+        expr: quantile(0.5, golem_provider_price_per_second_GLM) by (subnet, runtime)
       - record: golem_mean_provider_price_per_cpu_second_GLM
-        expr: quantile(0.5, golem_provider_price_per_cpu_second_GLM) by (subnet)
-
+        expr: quantile(0.5, golem_provider_price_per_cpu_second_GLM) by (subnet, runtime)
+  - name: sums
+    rules:
+      - record: golem_sum_provider_earnings_GLM_total
+        expr: sum(golem_provider_earnings_GLM_total) by (subnet, runtime)
+      - record: golem_sum_provider_mem_bytes
+        expr: sum(golem_provider_mem_bytes) by (subnet, runtime)
+      - record: golem_sum_provider_cpu_threads
+        expr: sum(golem_provider_cpu_threads) by (subnet, runtime)
+      - record: golem_sum_provider_storage_bytes
+        expr: sum(golem_provider_storage_bytes) by (subnet, runtime)
+      - record: golem_sum_provider_price_start_GLM
+        expr: sum(golem_provider_price_start_GLM) by (subnet, runtime)
+      - record: golem_sum_provider_price_per_second_GLM
+        expr: sum(golem_provider_price_per_second_GLM) by (subnet, runtime)
+      - record: golem_sum_provider_price_per_cpu_second_GLM
+        expr: sum(golem_provider_price_per_cpu_second_GLM) by (subnet, runtime)
