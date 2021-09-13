@@ -3,6 +3,7 @@ import prometheus_client
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 import requests
 from itertools import chain
+import signal
 
 common_labelmap = {
     "node_id": lambda p: p["node_id"],
@@ -79,8 +80,16 @@ if __name__ == '__main__':
     from prometheus_client import start_http_server
     from prometheus_client.core import REGISTRY
     from time import sleep
-    
+
     REGISTRY.register(GolemOnlineCollector())
     start_http_server(1234)
-    while True:
+
+    run = True
+    def signal_handler(signal, frame):
+        global run
+        run = False
+
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    while run:
         sleep(1)
