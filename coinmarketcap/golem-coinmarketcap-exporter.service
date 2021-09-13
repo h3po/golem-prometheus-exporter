@@ -1,0 +1,17 @@
+# /etc/systemd/system/golem-coinmarketcap-exporter.service
+[Unit]
+Description=%p
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStartPre=-/usr/bin/docker kill %p
+ExecStartPre=-/usr/bin/docker rm %p
+ExecStart=/usr/bin/docker run --rm --name %p \
+  --tty \
+  --net golem \
+  --env-file /etc/default/%p \
+  golem-coinmarketcap-exporter
+
+[Install]
+WantedBy=multi-user.target

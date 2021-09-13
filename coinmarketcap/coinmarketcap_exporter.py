@@ -6,7 +6,7 @@ import time
 import cachetools
 import os
 
-ttlcache = cachetools.TTLCache(10000, os.getenv("CMC_CACHE_TTL", 300))
+ttlcache = cachetools.TTLCache(10000, int(os.getenv("CMC_CACHE_TTL", 300)))
 
 class CoinmarketcapCollector(object):
 
