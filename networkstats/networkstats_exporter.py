@@ -1,9 +1,5 @@
-from typing import Counter
-import prometheus_client
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
 import requests
-from itertools import chain
-import signal
 
 common_labelmap = {
     "node_id": lambda p: p["node_id"],
@@ -80,6 +76,7 @@ if __name__ == '__main__':
     from prometheus_client import start_http_server
     from prometheus_client.core import REGISTRY
     from time import sleep
+    import signal
 
     REGISTRY.register(GolemOnlineCollector())
     start_http_server(1234)

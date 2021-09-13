@@ -5,4 +5,4 @@ RUN \
 
 COPY ./networkstats_exporter.py /app/
 
-ENTRYPOINT ["python", "/app/networkstats_exporter.py"]    
+ENTRYPOINT ["python", "/app/networkstats_exporter.py"]
