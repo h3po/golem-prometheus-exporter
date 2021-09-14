@@ -2,10 +2,10 @@ groups:
   - name: currencies
     rules:
       - record: golem_avg_provider_earnings_total
-        expr: label_replace(golem_avg_provider_earnings_total, "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
+        expr: label_replace(avg(golem_avg_provider_earnings_total) without (node_id), "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
       - record: golem_avg_provider_price_start
-        expr: label_replace(golem_avg_provider_price_start, "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
+        expr: label_replace(avg(golem_avg_provider_price_start) without (node_id), "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
       - record: golem_avg_provider_price_per_second
-        expr: label_replace(golem_avg_provider_price_per_second, "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
+        expr: label_replace(avg(golem_avg_provider_price_per_second) without (node_id), "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
       - record: golem_avg_provider_price_per_cpu_second
-        expr: label_replace(golem_avg_provider_price_per_cpu_second, "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
+        expr: label_replace(avg(golem_avg_provider_price_per_cpu_second) without (node_id), "fromcurrency", "$1", "currency", "(.*)") * on (fromcurrency) group_left (currency) coinmarketcap_price
