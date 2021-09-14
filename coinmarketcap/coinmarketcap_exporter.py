@@ -29,25 +29,25 @@ class CoinmarketcapCollector(object):
         return (data["data"], time.time())
 
     def collect(self):
-        coinmarketcap_rank = GaugeMetricFamily("coinmarketcap_rank", "", labels=("symbol",))
-        coinmarketcap_pairs = GaugeMetricFamily("coinmarketcap_pairs", "", labels=("symbol",))
-        coinmarketcap_price = GaugeMetricFamily("coinmarketcap_price", "", labels=("symbol", "currency"))
-        coinmarketcap_volume_24h = GaugeMetricFamily("coinmarketcap_volume_24h", "", labels=("symbol", "currency"))
-        coinmarketcap_marketcap = GaugeMetricFamily("coinmarketcap_marketcap", "", labels=("symbol", "currency"))
-        coinmarketcap_dominance = GaugeMetricFamily("coinmarketcap_dominance", "", labels=("symbol", "currency"))
+        coinmarketcap_rank = GaugeMetricFamily("coinmarketcap_rank", "", labels=("fromcurrency",))
+        coinmarketcap_pairs = GaugeMetricFamily("coinmarketcap_pairs", "", labels=("fromcurrency",))
+        coinmarketcap_price = GaugeMetricFamily("coinmarketcap_price", "", labels=("fromcurrency", "currency"))
+        coinmarketcap_volume_24h = GaugeMetricFamily("coinmarketcap_volume_24h", "", labels=("fromcurrency", "currency"))
+        coinmarketcap_marketcap = GaugeMetricFamily("coinmarketcap_marketcap", "", labels=("fromcurrency", "currency"))
+        coinmarketcap_dominance = GaugeMetricFamily("coinmarketcap_dominance", "", labels=("fromcurrency", "currency"))
 
         req, timestamp = self.__request()
 
-        for symbol, data in req.items():
+        for fromcurrency, data in req.items():
 
-            coinmarketcap_rank.add_metric((symbol,), data["cmc_rank"], timestamp)
-            coinmarketcap_pairs.add_metric((symbol,), data["num_market_pairs"], timestamp)
+            coinmarketcap_rank.add_metric((fromcurrency,), data["cmc_rank"], timestamp)
+            coinmarketcap_pairs.add_metric((fromcurrency,), data["num_market_pairs"], timestamp)
             
             for currency, quote in data["quote"].items():
-                coinmarketcap_price.add_metric((symbol, currency), quote["price"], timestamp)
-                coinmarketcap_volume_24h.add_metric((symbol, currency), quote["volume_24h"], timestamp)
-                coinmarketcap_marketcap.add_metric((symbol, currency), quote["market_cap"], timestamp)
-                coinmarketcap_dominance.add_metric((symbol, currency), quote["market_cap_dominance"], timestamp)
+                coinmarketcap_price.add_metric((fromcurrency, currency), quote["price"], timestamp)
+                coinmarketcap_volume_24h.add_metric((fromcurrency, currency), quote["volume_24h"], timestamp)
+                coinmarketcap_marketcap.add_metric((fromcurrency, currency), quote["market_cap"], timestamp)
+                coinmarketcap_dominance.add_metric((fromcurrency, currency), quote["market_cap_dominance"], timestamp)
 
         yield coinmarketcap_rank
         yield coinmarketcap_pairs

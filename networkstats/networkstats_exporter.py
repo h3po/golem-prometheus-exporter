@@ -44,15 +44,15 @@ class GolemOnlineCollector(object):
         providers, timestamp = self.__request()
 
         online = GolemGauge("online", unit="bool")
-        earnings_total = GolemGauge("earnings_total", unit="GLM")
+        earnings_total = GolemGauge("earnings_total", extra_labels={"currency": lambda p: "GLM",})
         mem_bytes = GolemGauge("mem", unit="bytes")
         cpu_threads = GolemGauge("cpu_threads", extra_labels={
             "cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
             "cpu_architecture": lambda p: p["golem.inf.cpu.architecture"]})
         storage_bytes = GolemGauge("storage", unit="bytes")
-        price_start = GolemGauge("price_start", unit="GLM")
-        price_per_second = GolemGauge("price_per_second", unit="GLM")
-        price_per_cpu_second = GolemGauge("price_per_cpu_second", unit="GLM")
+        price_start = GolemGauge("price_start", extra_labels={"currency": lambda p: "GLM",})
+        price_per_second = GolemGauge("price_per_second", extra_labels={"currency": lambda p: "GLM",})
+        price_per_cpu_second = GolemGauge("price_per_cpu_second", extra_labels={"currency": lambda p: "GLM",})
 
         for provider in providers:
             provider.update(provider["data"])
