@@ -1,12 +1,14 @@
 #inspired by https://github.com/bonovoxly/coinmarketcap-exporter/blob/master/coinmarketcap.py
 
-from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
+from prometheus_client.core import GaugeMetricFamily, Summary
 import requests
 import time
 import cachetools
 import os
 
 ttlcache = cachetools.TTLCache(10000, int(os.getenv("CMC_CACHE_TTL", 300)))
+api_requests = Summary("coinmarketcap_api_request_seconds", "time spent requesting coinmarketcap api data")
+api_response_size = Summary("coinmarketcap_api_response_size_bytes", "size of the coinmarketcap api data returned")
 
 class CoinmarketcapCollector(object):
 
@@ -15,10 +17,13 @@ class CoinmarketcapCollector(object):
         self.params = {"symbol": coins, "convert": currencies}
 
     @cachetools.cached(ttlcache)
+    @api_requests.time()
     def __request(self):
         session = requests.Session()
         session.headers.update(self.headers)
-        data = session.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', params=self.params).json()
+        r = session.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', params=self.params)
+        api_response_size.observe(len(r.content))
+        data = r.json()
         assert "data" in data, data
         assert data["status"]["error_code"] == 0, data
         return (data["data"], time.time())

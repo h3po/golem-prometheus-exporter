@@ -1,5 +1,11 @@
-from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily
+from prometheus_client.core import GaugeMetricFamily, Summary
 import requests
+import cachetools
+import os
+
+ttlcache = cachetools.TTLCache(1e6, int(os.getenv("GLM_CACHE_TTL", 30)))
+api_requests = Summary("golem_api_request_seconds", "time spent requesting golem api data")
+api_response_size = Summary("golem_api_response_size_bytes", "size of the golem api data returned")
 
 common_labelmap = {
     "node_id": lambda p: p["node_id"],
@@ -16,13 +22,6 @@ class GolemGauge(GaugeMetricFamily):
         if extra_labels: self.labelmap.update(extra_labels)
         super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
 
-class GolemCounter(CounterMetricFamily):
-
-    def __init__(self, name, unit="", extra_labels=None):
-        self.labelmap = common_labelmap.copy()
-        if extra_labels: self.labelmap.update(extra_labels)
-        super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
-
 def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
     if key in provider:
         value = provider[key]
@@ -32,12 +31,19 @@ def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
         metric.add_metric(labelgetter(provider, metric.labelmap), value)
 
 class GolemOnlineCollector(object):
- 
+
+    @cachetools.cached(ttlcache)
+    @api_requests.time()
+    def __request(self):
+        r = requests.get('https://api.stats.golem.network/v1/network/online')
+        api_response_size.observe(len(r.content))
+        return r.json()
+
     def collect(self):
-        providers = requests.get('https://api.stats.golem.network/v1/network/online').json()
+        providers = self.__request()
 
         online = GolemGauge("online", unit="bool")
-        earnings_total = GolemCounter("earnings_total", unit="GLM")
+        earnings_total = GolemGauge("earnings_total", unit="GLM")
         mem_bytes = GolemGauge("mem", unit="bytes")
         cpu_threads = GolemGauge("cpu_threads", extra_labels={
             "cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
