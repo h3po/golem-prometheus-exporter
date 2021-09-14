@@ -1,7 +1,7 @@
 FROM python:alpine
 
 RUN \
-    pip install --no-cache-dir prometheus-client requests
+    pip install --no-cache-dir prometheus-client requests cachetools
 
 COPY ./networkstats_exporter.py /app/
 
