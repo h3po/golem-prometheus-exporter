@@ -10,6 +10,7 @@ ExecStartPre=-/usr/bin/docker rm %p
 ExecStart=/usr/bin/docker run --rm --name %p \
   --tty \
   --net golem \
+  --env-file /etc/default/%p \
   golem-networkstats-exporter
 
 [Install]
