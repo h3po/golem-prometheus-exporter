@@ -2,6 +2,7 @@ from prometheus_client.core import GaugeMetricFamily, Summary
 import requests
 import cachetools
 import os
+import time
 
 ttlcache = cachetools.TTLCache(1e6, int(os.getenv("GLM_CACHE_TTL", 30)))
 api_requests = Summary("golem_api_request_seconds", "time spent requesting golem api data")
@@ -22,13 +23,13 @@ class GolemGauge(GaugeMetricFamily):
         if extra_labels: self.labelmap.update(extra_labels)
         super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
 
-def try_add_metric(metric, provider, key, subkey=None, multiplier=None):
+def try_add_metric(metric, provider, key, timestamp, subkey=None, multiplier=None):
     if key in provider:
         value = provider[key]
         if subkey is not None: value = value[subkey]
         if value is None: value = 0
         if multiplier: value *= multiplier
-        metric.add_metric(labelgetter(provider, metric.labelmap), value)
+        metric.add_metric(labelgetter(provider, metric.labelmap), value, timestamp)
 
 class GolemOnlineCollector(object):
 
@@ -37,10 +38,10 @@ class GolemOnlineCollector(object):
     def __request(self):
         r = requests.get('https://api.stats.golem.network/v1/network/online')
         api_response_size.observe(len(r.content))
-        return r.json()
+        return (r.json(), time.time())
 
     def collect(self):
-        providers = self.__request()
+        providers, timestamp = self.__request()
 
         online = GolemGauge("online", unit="bool")
         earnings_total = GolemGauge("earnings_total", unit="GLM")
@@ -56,18 +57,18 @@ class GolemOnlineCollector(object):
         for provider in providers:
             provider.update(provider["data"])
 
-            try_add_metric(online, provider, "online")
-            try_add_metric(earnings_total, provider, "earnings_total")
-            try_add_metric(mem_bytes, provider, "golem.inf.mem.gib", multiplier=1024*1024*1024)
-            try_add_metric(cpu_threads, provider, "golem.inf.cpu.threads")
-            try_add_metric(storage_bytes, provider, "golem.inf.storage.gib", multiplier=1024*1024*1024)
+            try_add_metric(online, provider, "online", timestamp)
+            try_add_metric(earnings_total, provider, "earnings_total", timestamp)
+            try_add_metric(mem_bytes, provider, "golem.inf.mem.gib", timestamp, multiplier=1024*1024*1024)
+            try_add_metric(cpu_threads, provider, "golem.inf.cpu.threads", timestamp)
+            try_add_metric(storage_bytes, provider, "golem.inf.storage.gib", timestamp, multiplier=1024*1024*1024)
 
             #so far all providers are "linear":
             #wget https://api.stats.golem.network/v1/network/online -qO- | jq '.[].data."golem.com.pricing.model"' | sort | uniq
             if provider["golem.com.pricing.model"] == "linear":
-                try_add_metric(price_start, provider, "golem.com.pricing.model.linear.coeffs", subkey=0)
-                try_add_metric(price_per_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=1)
-                try_add_metric(price_per_cpu_second, provider, "golem.com.pricing.model.linear.coeffs", subkey=2)
+                try_add_metric(price_start, provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=0)
+                try_add_metric(price_per_second, provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=1)
+                try_add_metric(price_per_cpu_second, provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=2)
 
         yield online
         yield earnings_total
