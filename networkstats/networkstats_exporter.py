@@ -1,3 +1,4 @@
+from prometheus_client import Gauge
 from prometheus_client.core import GaugeMetricFamily, Summary
 import requests
 import cachetools
@@ -79,6 +80,25 @@ class GolemOnlineCollector(object):
         yield price_per_second
         yield price_per_cpu_second
 
+class GolemUtilizationCollector(object):
+
+    @cachetools.cached(ttlcache)
+    @api_requests.time()
+    def __request(self):
+        r = requests.get('https://api.stats.golem.network/v1/network/utilization')
+        api_response_size.observe(len(r.content))
+        return (r.json(), time.time())
+
+    def collect(self):
+        utilization, timestamp = self.__request()
+
+        latest = utilization["data"]["result"][0]["values"][-1]
+
+        computing = GaugeMetricFamily("golem_providers_computing_count", "golem_providers_computing_count")
+        computing.add_metric([], float(latest[1]), latest[0])
+
+        yield computing
+
 if __name__ == '__main__':
     from prometheus_client import start_http_server
     from prometheus_client.core import REGISTRY
@@ -86,6 +106,7 @@ if __name__ == '__main__':
     import signal
 
     REGISTRY.register(GolemOnlineCollector())
+    REGISTRY.register(GolemUtilizationCollector())
     start_http_server(1234)
 
     run = True
