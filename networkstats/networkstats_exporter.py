@@ -1,4 +1,4 @@
-from prometheus_client.core import GaugeMetricFamily, Summary
+from prometheus_client.core import GaugeMetricFamily, Summary, StateSetMetricFamily
 import requests
 import cachetools
 import os
@@ -20,30 +20,30 @@ class GolemCollectorBase(object):
             self.api_response_size.labels(self.api_url).observe(len(r.content))
             return (r.json(), time.time())
 
+common_labelmap = {
+    "node_id": lambda p: p["node_id"],
+    "subnet": lambda p: p["golem.node.debug.subnet"]
+}
+
+def labelgetter(provider, labelmap):
+    return (f(provider) for f in labelmap.values())
+
+class GolemOnlineGauge(GaugeMetricFamily):
+
+    def __init__(self, name, unit="", extra_labels=None):
+        self.labelmap = common_labelmap.copy()
+        if extra_labels: self.labelmap.update(extra_labels)
+        super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
+
+    def try_add_metric(self, provider, key, timestamp, subkey=None, multiplier=None):
+        if key in provider:
+            value = provider[key]
+            if subkey is not None: value = value[subkey]
+            if value is None: value = 0
+            if multiplier: value *= multiplier
+            self.add_metric(labelgetter(provider, self.labelmap), value, timestamp)
+
 class GolemOnlineCollector(GolemCollectorBase):
-
-    class GolemGauge(GaugeMetricFamily):
-        common_labelmap = {
-            "node_id": lambda p: p["node_id"],
-            "subnet": lambda p: p["golem.node.debug.subnet"],
-            "runtime": lambda p: p["golem.runtime.name"]
-        }
-
-        def _labelgetter(self, provider, labelmap=common_labelmap):
-            return (f(provider) for f in labelmap.values())
-
-        def __init__(self, name, unit="", extra_labels=None):
-            self.labelmap = self.common_labelmap.copy()
-            if extra_labels: self.labelmap.update(extra_labels)
-            super().__init__(f"golem_provider_{name}", name, labels=self.labelmap.keys(), unit=unit)
-
-        def try_add_metric(self, provider, key, timestamp, subkey=None, multiplier=None):
-            if key in provider:
-                value = provider[key]
-                if subkey is not None: value = value[subkey]
-                if value is None: value = 0
-                if multiplier: value *= multiplier
-                self.add_metric(self._labelgetter(provider, self.labelmap), value, timestamp)
 
     def __init__(self):
         super().__init__("https://api.stats.golem.network/v1/network/online")
@@ -51,16 +51,18 @@ class GolemOnlineCollector(GolemCollectorBase):
     def collect(self):
         providers, timestamp = self._request()
 
-        online = self.GolemGauge("online", unit="bool")
-        earnings_total = self.GolemGauge("earnings_total", extra_labels={"currency": lambda p: "GLM",})
-        mem_bytes = self.GolemGauge("mem", unit="bytes")
-        cpu_threads = self.GolemGauge("cpu_threads", extra_labels={
+        online = GolemOnlineGauge("online", unit="bool")
+        earnings_total = GolemOnlineGauge("earnings_total", extra_labels={"currency": lambda p: "GLM",})
+        mem_bytes = GolemOnlineGauge("mem", unit="bytes")
+        cpu_threads = GolemOnlineGauge("cpu_threads", extra_labels={
             "cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
             "cpu_architecture": lambda p: p["golem.inf.cpu.architecture"]})
-        storage_bytes = self.GolemGauge("storage", unit="bytes")
-        price_start = self.GolemGauge("price_start", extra_labels={"currency": lambda p: "GLM",})
-        price_per_second = self.GolemGauge("price_per_second", extra_labels={"currency": lambda p: "GLM",})
-        price_per_cpu_second = self.GolemGauge("price_per_cpu_second", extra_labels={"currency": lambda p: "GLM",})
+        storage_bytes = GolemOnlineGauge("storage", unit="bytes")
+        price_start = GolemOnlineGauge("price_start", extra_labels={"currency": lambda p: "GLM",})
+        price_per_second = GolemOnlineGauge("price_per_second", extra_labels={"currency": lambda p: "GLM",})
+        price_per_cpu_second = GolemOnlineGauge("price_per_cpu_second", extra_labels={"currency": lambda p: "GLM",})
+
+        runtime = StateSetMetricFamily("golem_provider_runtime", "runtime", labels=list(common_labelmap.keys())+["runtime"])
 
         for provider in providers:
             provider.update(provider["data"])
@@ -78,6 +80,10 @@ class GolemOnlineCollector(GolemCollectorBase):
                 price_per_second.try_add_metric(provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=1)
                 price_per_cpu_second.try_add_metric(provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=2)
 
+            #runtime.labels().state(provider["golem.runtime.name"])
+            runtime.add_metric(labelgetter(provider, common_labelmap), {"vm": provider["golem.runtime.name"] == "vm"}, timestamp)
+            runtime.add_metric(labelgetter(provider, common_labelmap), {"wasmtime": provider["golem.runtime.name"] == "wasmtime"}, timestamp)
+
         yield online
         yield earnings_total
         yield mem_bytes
@@ -86,6 +92,7 @@ class GolemOnlineCollector(GolemCollectorBase):
         yield price_start
         yield price_per_second
         yield price_per_cpu_second
+        yield runtime
 
 class GolemUtilizationCollector(GolemCollectorBase):
 
