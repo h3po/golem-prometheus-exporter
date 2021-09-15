@@ -55,14 +55,15 @@ class GolemOnlineCollector(GolemCollectorBase):
         earnings_total = GolemOnlineGauge("earnings_total", extra_labels={"currency": lambda p: "GLM",})
         mem_bytes = GolemOnlineGauge("mem", unit="bytes")
         cpu_threads = GolemOnlineGauge("cpu_threads", extra_labels={
-            "cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
+            #"cpu_vendor": lambda p: p.get("golem.inf.cpu.vendor", "unknown"),
             "cpu_architecture": lambda p: p["golem.inf.cpu.architecture"]})
         storage_bytes = GolemOnlineGauge("storage", unit="bytes")
         price_start = GolemOnlineGauge("price_start", extra_labels={"currency": lambda p: "GLM",})
         price_per_second = GolemOnlineGauge("price_per_second", extra_labels={"currency": lambda p: "GLM",})
         price_per_cpu_second = GolemOnlineGauge("price_per_cpu_second", extra_labels={"currency": lambda p: "GLM",})
 
-        runtime = StateSetMetricFamily("golem_provider_runtime", "runtime", labels=list(common_labelmap.keys())+["runtime"])
+        runtime = StateSetMetricFamily("golem_provider_runtime", "golem_provider_runtime", labels=list(common_labelmap.keys())+["runtime"])
+        version = StateSetMetricFamily("golem_provider_version", "golem_provider_version", labels=list(common_labelmap.keys())+["version"])
 
         for provider in providers:
             provider.update(provider["data"])
@@ -80,9 +81,9 @@ class GolemOnlineCollector(GolemCollectorBase):
                 price_per_second.try_add_metric(provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=1)
                 price_per_cpu_second.try_add_metric(provider, "golem.com.pricing.model.linear.coeffs", timestamp, subkey=2)
 
-            #runtime.labels().state(provider["golem.runtime.name"])
             runtime.add_metric(labelgetter(provider, common_labelmap), {"vm": provider["golem.runtime.name"] == "vm"}, timestamp)
             runtime.add_metric(labelgetter(provider, common_labelmap), {"wasmtime": provider["golem.runtime.name"] == "wasmtime"}, timestamp)
+            version.add_metric(labelgetter(provider, common_labelmap), {provider["version"]: 1}, timestamp)
 
         yield online
         yield earnings_total
@@ -93,6 +94,7 @@ class GolemOnlineCollector(GolemCollectorBase):
         yield price_per_second
         yield price_per_cpu_second
         yield runtime
+        yield version
 
 class GolemUtilizationCollector(GolemCollectorBase):
 
