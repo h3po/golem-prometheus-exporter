@@ -1,4 +1,3 @@
-from prometheus_client import Gauge
 from prometheus_client.core import GaugeMetricFamily, Summary
 import requests
 import cachetools
@@ -97,9 +96,32 @@ class GolemUtilizationCollector(GolemCollectorBase):
         utilization, timestamp = self._request()
         latest = utilization["data"]["result"][0]["values"][-1]
         computing = GaugeMetricFamily("golem_providers_computing_count", "golem_providers_computing_count")
-        computing.add_metric([], float(latest[1]), latest[0])
+        computing.add_metric((), float(latest[1]), latest[0])
 
         yield computing
+
+class GolemInvoicesCollectorBase(GolemCollectorBase):
+
+    def __init__(self, api_url, metricname):
+        self.metricname = metricname
+        super().__init__(api_url)
+
+    def collect(self):
+        data, timestamp = self._request()
+        computing = GaugeMetricFamily(self.metricname, self.metricname)
+        computing.add_metric((), list(data.values())[0] / 100, timestamp)
+
+        yield computing
+
+class GolemInvoicesPaidCollector(GolemInvoicesCollectorBase):
+
+    def __init__(self):
+        super().__init__("https://api.stats.golem.network/v1/network/market/invoice/paid/1h", "golem_invoices_paid_ratio_1h")
+
+class GolemInvoicesAcceptedCollector(GolemInvoicesCollectorBase):
+
+    def __init__(self):
+        super().__init__("https://api.stats.golem.network/v1/network/market/provider/invoice/accepted/1h", "golem_invoices_accepted_ratio_1h")
 
 if __name__ == '__main__':
     from prometheus_client import start_http_server
@@ -109,6 +131,8 @@ if __name__ == '__main__':
 
     REGISTRY.register(GolemOnlineCollector())
     REGISTRY.register(GolemUtilizationCollector())
+    REGISTRY.register(GolemInvoicesPaidCollector())
+    REGISTRY.register(GolemInvoicesAcceptedCollector())
     start_http_server(1234)
 
     run = True
