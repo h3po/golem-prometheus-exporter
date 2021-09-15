@@ -1,4 +1,4 @@
-from prometheus_client.core import GaugeMetricFamily, Summary, StateSetMetricFamily
+from prometheus_client.core import GaugeMetricFamily, Summary, StateSetMetricFamily, Gauge
 import requests
 import cachetools
 import os
@@ -63,7 +63,9 @@ class GolemOnlineCollector(GolemCollectorBase):
         price_per_cpu_second = GolemOnlineGauge("price_per_cpu_second", extra_labels={"currency": lambda p: "GLM",})
 
         runtime = StateSetMetricFamily("golem_provider_runtime", "golem_provider_runtime", labels=list(common_labelmap.keys())+["runtime"])
-        version = StateSetMetricFamily("golem_provider_version", "golem_provider_version", labels=list(common_labelmap.keys())+["version"])
+        version_gauge = GaugeMetricFamily("golem_provider_version_count", "golem_provider_version", labels=("version",))
+
+        versions = {}
 
         for provider in providers:
             provider.update(provider["data"])
@@ -83,7 +85,12 @@ class GolemOnlineCollector(GolemCollectorBase):
 
             runtime.add_metric(labelgetter(provider, common_labelmap), {"vm": provider["golem.runtime.name"] == "vm"}, timestamp)
             runtime.add_metric(labelgetter(provider, common_labelmap), {"wasmtime": provider["golem.runtime.name"] == "wasmtime"}, timestamp)
-            version.add_metric(labelgetter(provider, common_labelmap), {provider["version"]: 1}, timestamp)
+            if provider["version"] not in versions:
+                versions[provider["version"]] = 0
+            versions[provider["version"]] += 1
+
+        for version, count in versions.items():
+            version_gauge.add_metric((version,), count, timestamp)
 
         yield online
         yield earnings_total
@@ -94,7 +101,7 @@ class GolemOnlineCollector(GolemCollectorBase):
         yield price_per_second
         yield price_per_cpu_second
         yield runtime
-        yield version
+        yield version_gauge
 
 class GolemUtilizationCollector(GolemCollectorBase):
 
