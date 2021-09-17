@@ -20,3 +20,7 @@ scrape_configs:
   - job_name: "coinmarketcap"
     static_configs:
       - targets: ["golem-coinmarketcap-exporter:9101"]
+
+  - job_name: "grafana"
+    static_configs:
+      - targets: ["golem-grafana:3000"]
